@@ -1,7 +1,5 @@
 #include "libInterpolate/Interpolate.hpp"
 #include "libInterpolate/DataSet.hpp"
-#include <fstream>
-#include <iostream>
 #include "eigenmvn.h"
 #include <numbers>
 #include <chrono>
@@ -12,38 +10,15 @@ plot_matplotlib plot;
 
 Eigen::MatrixXd covariance_driver();
 
-/**
-	Take a pair of un-correlated variances.
-	Create a covariance matrix by correlating
-	them, sandwiching them in a rotation matrix.
-*/
-Eigen::Matrix2d genCovar(double v0, double v1, double theta)
-{
-	Eigen::Matrix2d rot = Eigen::Rotation2Dd(theta).matrix();
-	return rot * Eigen::DiagonalMatrix<double, 2, 2>(v0, v1) * rot.transpose();
-}
-
-
 int main()
 {
 	Eigen::Vector3d mean;
 	Eigen::Matrix3d covar;
-	//mean << 2, 4; // Set the mean
+	//mean << 2, 4;
 	mean << 0., 0, 0.; // Set the mean
 	//covar << 1, 0.0, 0.0, 1;  // Set the covariance unity matrix
-	//covar << 1, 0.6, 0.6, 2;  // Set the covariance
-	
-	Eigen::Matrix3d D, C, V; 
-
-	D << 0.2, 0, 0, 0, 0.1, 0, 0, 0, 0.15;
-	C << 1, 0.8, 0.5, 0.8, 1, 0.3, 0.50, .3, 1;
-	//V = D * C * D;
-
-	//covar = genCovar(3, 0.1, std::numbers::pi / 5.0);
-	//covar = genCovar(1, 1, 1);
-	//covar = genCovar(1, 0.5, 2);
-
-	V = covariance_driver();
+	//covar << 1, 0.6, 0.6, 2;  
+	covar = covariance_driver();
 
 	const auto Samples = 10000000;
 	const auto Histogram_size = 100;
@@ -51,7 +26,7 @@ int main()
 
 	std::random_device r;
 	auto seed = (uint64_t(r()) << 32) | r();
-	Eigen::EigenMultivariateNormal<double> normX_cholesk(mean, V, false, seed);
+	Eigen::EigenMultivariateNormal<double> normX_cholesk(mean, covar, false, seed);
 
 	std::vector<double> xy(3 * Samples);
 
@@ -85,7 +60,7 @@ int main()
 		<< " Duration EigenMultivariateNormal " << fp_sec.count() << "[s]" <<
 		std::endl << std::endl;
 	std::cout << " Mean " << std::endl << mean << std::endl << std::endl 
-		<< " Covariance Matrix " << std::endl << V << std::endl << std::endl;
+		<< " Covariance Matrix " << std::endl << covar << std::endl << std::endl;
 
 	begin = std::chrono::high_resolution_clock::now();
 
