@@ -1,0 +1,20 @@
+// Hint files help the Visual Studio IDE interpret Visual C++ identifiers
+// such as names of functions and macros.
+// For more information see https://go.microsoft.com/fwlink/?linkid=865984
+#define EIGEN_EMPTY_STRUCT_CTOR(X) EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE X() {} EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE X(const X& ) {}
+#define EIGEN_EMPTY_STRUCT_CTOR(X)
+// Hint files help the Visual Studio IDE interpret Visual C++ identifiers
+// such as names of functions and macros.
+// For more information see https://go.microsoft.com/fwlink/?linkid=865984
+#define EIGEN_DEVICE_FUNC __attribute__((flatten)) __attribute__((always_inline))
+#define EIGEN_DEVICE_FUNC
+// Hint files help the Visual Studio IDE interpret Visual C++ identifiers
+// such as names of functions and macros.
+// For more information see https://go.microsoft.com/fwlink/?linkid=865984
+#define EIGEN_DEVICE_FUNC __attribute__((flatten)) __attribute__((always_inline))
+#define EIGEN_DEVICE_FUNC
+// Hint files help the Visual Studio IDE interpret Visual C++ identifiers
+// such as names of functions and macros.
+// For more information see https://go.microsoft.com/fwlink/?linkid=865984
+#define EIGEN_DEVICE_FUNC __attribute__((flatten)) __attribute__((always_inline))
+#define EIGEN_DEVICE_FUNC
