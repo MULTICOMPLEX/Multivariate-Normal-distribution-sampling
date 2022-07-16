@@ -15,18 +15,20 @@ int main()
 	Eigen::Vector3d mean;
 	Eigen::Matrix3d covar;
 	//mean << 2, 4;
-	mean << 0., 0, 0.; // Set the mean
-	//covar << 1, 0.0, 0.0, 1;  // Set the covariance unity matrix
+	mean << 0, 0, 0; // Set the mean
 	//covar << 1, 0.6, 0.6, 2;  
+	
+	//covar  = covar.Identity();
 	covar = covariance_driver();
 
+	const bool Sine = true;
 	const auto Samples = 10000000;
-	const auto Histogram_size = 100;
+	const auto Histogram_size = 35;
 	const auto Smooth_factor = 1;
 
 	std::random_device r;
 	auto seed = (uint64_t(r()) << 32) | r();
-	Eigen::EigenMultivariateNormal<double> normX_cholesk(mean, covar, false, seed);
+	Eigen::EigenMultivariateNormal<double> normX_cholesk(mean, covar, false, seed, Sine);
 
 	std::vector<double> xy(3 * Samples);
 
@@ -87,8 +89,6 @@ int main()
 	for (auto&& i : boost::histogram::indexed(hr12))
 		Z.push_back(i);
 
-	//////////////////
-
 	auto dens_xy = Samples * abs((maxz - minz) * (maxy - miny)) / (X.size() * Y.size());
 
 	for (auto& i : Z)
@@ -143,7 +143,8 @@ int main()
 	}
 
 	begin = std::chrono::high_resolution_clock::now();
-	plot.plot_histogram(X, Y, Z);
+
+	plot.plot_histogram(X, Y, Z, Sine);
 
 	plot.set_xlabel("X");
 	plot.set_ylabel("Y");

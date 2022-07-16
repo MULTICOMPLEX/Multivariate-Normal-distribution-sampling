@@ -46,6 +46,9 @@
 	*/
 namespace Eigen {
 	namespace internal {
+
+		bool Sine = false;
+
 		template<typename Scalar>
 		struct scalar_normal_dist_op
 		{
@@ -53,12 +56,16 @@ namespace Eigen {
 			static mxws<uint32_t> rng;                        // The uniform pseudo-random algorithm
 			//mutable std::normal_distribution<Scalar> std_norm; // gaussian combinator 
 			mutable cxx::ziggurat_normal_distribution<Scalar> std_norm;
+			
 			EIGEN_EMPTY_STRUCT_CTOR(scalar_normal_dist_op)
 
 				template<typename Index>
 			inline const Scalar operator() (Index, Index = 0) const
 			{
-				return std_norm(rng);
+				if(!Sine)
+					return std_norm(rng);
+				else
+					return rng.Sine(50.);
 			}
 
 			void seed(const uint64_t& s) { rng.seed(s); }
@@ -90,13 +97,15 @@ namespace Eigen {
 		SelfAdjointEigenSolver<Matrix<Scalar, Dynamic, Dynamic> > _eigenSolver; // drawback: this creates a useless eigenSolver when using Cholesky decomposition, but it yields access to eigenvalues and vectors
 
 	public:
+
 		EigenMultivariateNormal(const Matrix<Scalar, Dynamic, 1>& mean, const Matrix<Scalar, Dynamic, Dynamic>& covar,
-			const bool use_cholesky = false, const uint64_t& seed = std::mt19937::default_seed)
+			const bool use_cholesky = false, const uint64_t& seed = std::mt19937::default_seed, bool Sine = false)
 			:_use_cholesky(use_cholesky)
 		{
 			randN.seed(seed);
 			setMean(mean);
 			setCovar(covar);
+			internal::Sine = Sine;
 		}
 
 		void setMean(const Matrix<Scalar, Dynamic, 1>& mean) { _mean = mean; }

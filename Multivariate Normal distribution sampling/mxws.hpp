@@ -183,11 +183,13 @@ public:
 		// return a normally distributed random value
 		T v1 = (*this)(1.0);
 		T v2 = (*this)(1.0);
-		return std::cos(2 * std::numbers::pi * v2) * 
+		return std::cos(2 * std::numbers::pi * v2) *
 			std::sqrt(-2 * std::log(v1)) * sigma + mean;
 	}
 
+
 	cxx::ziggurat_normal_distribution<double> normalRandomZ;
+
 
 	template <typename T, typename L>
 		requires std::floating_point<T>&&
@@ -376,7 +378,7 @@ public:
 		std::integral<I>&&
 		std::same_as<L, std::uint64_t>
 		std::tuple<R, I> Probability_Wave(const I& board_SIZE,
-			auto& cycle, const I& N_cycles, const L& TRIALS) {
+			auto& cycle, const L& TRIALS) {
 
 		const I board_size = I(round(log(board_SIZE * 6) * pow(tan(36 / 5.), 2)));
 		const I rn_range = I(floor(board_SIZE / sqrt(log2(board_SIZE))));
@@ -395,6 +397,26 @@ public:
 		}
 
 		return std::make_tuple(rn_range, board_size);
+	}
+
+	template <typename T>
+		requires std::floating_point<T>
+	T inline Sine(T sigma)
+	{
+		// return a normally distributed random value
+		if (sigma <= 1.0) sigma = 2.0;
+
+		typedef int I;
+
+		const I board_size = I(round(log(sigma * 6) * pow(tan(36 / 5.), 2)));
+		const T rn_range = sigma / sqrt(log2(sigma));
+
+		T random_walk = 0;
+
+		for (auto j = 0; j < board_size; j++)
+			random_walk += (*this)(1.0);
+
+		return fmod(random_walk * rn_range, sigma);
 	}
 
 	template <typename T, typename L>

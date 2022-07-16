@@ -91,7 +91,7 @@ public:
 	void plot_somedata_3D(const std::vector<double>& X, const std::vector<double>& Y, const std::vector<double>& Z,
 		std::string properties = "k", std::string label = "Line 1", std::string color = "green", double alpha = 1);
 
-	void plot_histogram(const auto& X, const auto& Y, const auto& Z);
+	void plot_histogram(const auto& X, const auto& Y, const auto& Z, bool Sine);
 
 	void grid_off();
 	void grid_on();
@@ -481,7 +481,7 @@ void plot_matplotlib::plot_somedata_3D(const std::vector<double>& X, const std::
 
 void plot_matplotlib::plot_histogram
 (
-	const auto& X, const auto& Y, const auto& Z
+	const auto& X, const auto& Y, const auto& Z, bool Sine
 )
 {
 	// Plot Points:
@@ -513,21 +513,17 @@ void plot_matplotlib::plot_histogram
 	PyRun_StringStd("X, Y = np.meshgrid(hx, hy)");
 
 	PyRun_StringStd("cp = ax.plot_surface(X, Y, hz, cmap = cm.viridis, antialiased=True)");
-	PyRun_StringStd("mz = np.max(hz)");
+	PyRun_StringStd("maxz = np.max(hz)");
+
+		PyRun_StringStd("csetx = plt.contourf(X, Y, hz, 60, zdir = 'x', offset = np.min(hx),\
+ cmap = cm.viridis, antialiased=True)");
+		PyRun_StringStd("csety = ax.contourf(X, Y, hz, 60, zdir = 'y', offset = np.max(hy),\
+ cmap = cm.viridis, antialiased=True)");
 
 	PyRun_StringStd("cset = ax.contourf\
-		(X, Y, hz, 10, zdir = 'z', offset = -mz/2, cmap = cm.viridis, antialiased=True)");
+		(X, Y, hz, 10, zdir = 'z', offset = -maxz/2, cmap = cm.viridis, antialiased=True)");
+	PyRun_StringStd("ax.set_zlim(-maxz/2, maxz)");
 
-	PyRun_StringStd("csetx = plt.contourf(X, Y, hz, 60, zdir = 'x', offset = np.min(hx),\
- cmap = cm.viridis, antialiased=True)");
-
-	//PyRun_StringStd("plt.plot(hx, Zx, np.min(hx), zdir = 'x', color = 'red')");
-	//PyRun_StringStd("plt.plot(hy, Zy, np.max(hy), zdir = 'y', color = 'blue')");
-
-	PyRun_StringStd("csety = ax.contourf(X, Y, hz, 60, zdir = 'y', offset = np.max(hy),\
- cmap = cm.viridis, antialiased=True)");
-
-	PyRun_StringStd("ax.set_zlim(-mz/2, np.max(hz))");
 	PyRun_StringStd("plt.colorbar(cp, shrink = 0.25)");
 	PyRun_StringStd("ax.view_init(27, -21)");
 
