@@ -399,14 +399,12 @@ public:
 		return std::make_tuple(rn_range, board_size);
 	}
 
-	template <typename T>
-		requires std::floating_point<T>
-	T inline Sine(T sigma)
+	double inline Sine()
 	{
-		// return a normally distributed random value
-		if (sigma <= 1.0) sigma = 2.0;
-
 		typedef int I;
+		typedef double T;
+
+		const T sigma = 50;
 
 		const I board_size = I(round(log(sigma * 6) * pow(tan(36 / 5.), 2)));
 		const T rn_range = sigma / sqrt(log2(sigma));
