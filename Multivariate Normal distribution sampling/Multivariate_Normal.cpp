@@ -26,7 +26,7 @@ int main()
 {
 	const bool Sine = true;
 	const auto Samples = 100000;
-	const auto integ = 10000;
+	const auto integ = 100;
 	const auto Histogram_size = 100;
 	const auto Smooth_factor = 1;
 
@@ -92,25 +92,17 @@ int main()
 			minz = *mmz.min;
 			maxz = *mmz.max;
 
-			if (minxo < minx)
-				minx = minxo;
-			if (maxxo > maxx)
-				maxx = maxxo;
-			if (minyo < miny)
-				miny = minyo;
-			if (maxyo > maxy)
-				maxy = maxyo;
-			if (minzo < minz)
-				minz = minzo;
-			if (maxzo > maxz)
-				maxz = maxzo;
+			if (minxo < minx) minx = minxo; if (maxxo > maxx) maxx = maxxo;
+			if (minyo < miny) miny = minyo; if (maxyo > maxy) maxy = maxyo;
+			if (minzo < minz) minz = minzo; if (maxzo > maxz) maxz = maxzo;
 		}
 
 		else {
+
 			for (auto& i : xy)
 				i = rng.sine();
 
-			minx = 0, miny = 0, minz = 0;
+			minx = 0., miny = 0., minz = 0.;
 			maxx = 50, maxy = 50, maxz = 50;
 		}
 
