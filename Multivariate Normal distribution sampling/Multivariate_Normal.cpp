@@ -13,8 +13,8 @@ Eigen::MatrixXd covariance_driver();
 int main()
 {
 	const bool Sine = true;
-	const auto Samples = 10000000;
-	const auto integ = 10;
+	const auto Samples = 100000;
+	const auto integ = 1000;
 	const auto Histogram_size = 100;
 	const auto Smooth_factor = 1;
 
@@ -47,7 +47,9 @@ int main()
 	std::vector<double> Z2(Histogram_size * Histogram_size);
 	std::vector<double> X, Y, Z;
 
-	double minx = 0, maxx = 0, miny = 0, maxy = 0, minz = 0, maxz = 0;
+	double minx = INFINITY, maxx = -INFINITY, miny = INFINITY, maxy = -INFINITY,
+		minz = INFINITY, maxz = -INFINITY;
+	double minxo, maxxo, minyo, maxyo, minzo, maxzo;
 
 	std::chrono::time_point<std::chrono::high_resolution_clock> begin, end;
 	std::chrono::duration<double> fp_sec;
@@ -57,18 +59,20 @@ int main()
 		begin = std::chrono::high_resolution_clock::now();
 
 		k = normX_cholesk.samples(Samples);
+		
+		minxo = minx, maxxo = maxx, minyo = miny, maxyo = maxy, minzo = minz, maxzo = maxz;
 
 		auto mmx = std::ranges::minmax_element(spx);
-		if (minx > *mmx.min) minx = *mmx.min;
-		if (maxx < *mmx.max) maxx = *mmx.max;
+		minx = *mmx.min;
+		maxx = *mmx.max;
 
 		auto mmy = std::ranges::minmax_element(spy);
-		if (miny > *mmy.min) miny = *mmy.min;
-		if (maxy < *mmy.max) maxy = *mmy.max;
+		miny = *mmy.min;
+		maxy = *mmy.max;
 
 		auto mmz = std::ranges::minmax_element(spz);
-		if (minz > *mmz.min) minz = *mmz.min;
-		if (maxz < *mmz.max) maxz = *mmz.max;
+		minz = *mmz.min;
+		maxz = *mmz.max;
 
 		end = std::chrono::high_resolution_clock::now();
 		fp_sec = end - begin;
@@ -79,6 +83,26 @@ int main()
 
 		begin = std::chrono::high_resolution_clock::now();
 
+		using namespace boost::histogram::literals; // enables _c suffix
+
+		if (minxo < minx)
+			minx = minxo;
+		
+		if(maxxo > maxx)
+			maxx = maxxo;
+
+		if (minyo < miny)
+			miny = minyo;
+
+		if (maxyo > maxy)
+			maxy = maxyo;
+
+		if (minzo < minz)
+			minz = minzo;
+
+		if (maxzo > maxz)
+			maxz = maxzo;
+		
 		auto hxy = boost::histogram::make_histogram(
 			boost::histogram::axis::regular(Histogram_size, minx, maxx),
 			boost::histogram::axis::regular(Histogram_size, miny, maxy),
@@ -87,24 +111,23 @@ int main()
 		auto w = { spx, spy, spz };
 
 		hxy.fill(w);
-
-		using namespace boost::histogram::literals; // enables _c suffix
+		
 		auto hr12 = boost::histogram::algorithm::project(hxy, 1_c, 2_c);
 
 		X.clear();
 		Y.clear();
 		Z.clear();
 
-		for (auto&& x : hr12.axis(0))
-			X.push_back(x);
-
-		for (auto&& y : hr12.axis(1))
-			Y.push_back(y);
+		for (auto && y : hr12.axis(0)) 
+				X.push_back(y);
+		
+		for (auto&& z : hr12.axis(1))
+			Y.push_back(z);
 
 		for (auto&& i : boost::histogram::indexed(hr12))
 			Z.push_back(i);
-
-		auto dens_xy = Samples * abs((maxz - minz) * (maxy - miny)) / (X.size() * Y.size());
+		
+		auto dens_xy = Samples * abs((maxy - miny) * (maxz - minz)) / (X.size() * Y.size());
 
 		for (auto t = 0; auto & i : Z) {
 			i /= dens_xy;
