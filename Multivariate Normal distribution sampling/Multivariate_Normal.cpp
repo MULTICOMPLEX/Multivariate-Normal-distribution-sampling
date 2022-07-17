@@ -3,8 +3,10 @@
 #include "eigenmvn.h"
 #include <numbers>
 #include <chrono>
+#include <ranges>
 #include "matplotlib.hpp"
 #include <boost/histogram.hpp>
+using namespace boost::histogram::literals; // enables _c suffix
 
 plot_matplotlib plot;
 
@@ -12,7 +14,7 @@ Eigen::MatrixXd covariance_driver();
 
 int main()
 {
-	const bool Sine = true;
+	const bool Sine = false;
 	const auto Samples = 100000;
 	const auto integ = 1000;
 	const auto Histogram_size = 100;
@@ -82,8 +84,6 @@ int main()
 			<< fp_sec.count() << "[s]" << std::endl << std::endl;
 
 		begin = std::chrono::high_resolution_clock::now();
-
-		using namespace boost::histogram::literals; // enables _c suffix
 
 		if (minxo < minx)
 			minx = minxo;
