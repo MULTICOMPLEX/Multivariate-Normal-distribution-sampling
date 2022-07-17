@@ -12,15 +12,15 @@ Eigen::MatrixXd covariance_driver();
 
 int main()
 {
-	const bool Sine = false;
+	const bool Sine = true;
 	const auto Samples = 10000000;
-	const auto integ = 1;
+	const auto integ = 10;
 	const auto Histogram_size = 100;
 	const auto Smooth_factor = 1;
 
 	Eigen::Vector3d mean;
 	Eigen::Matrix3d covar;
-	//mean << 2, 4;
+
 	mean << 0, 0, 0; // Set the mean
 	//covar << 1, 0.6, 0.6, 2;  
 
@@ -106,10 +106,10 @@ int main()
 
 		auto dens_xy = Samples * abs((maxz - minz) * (maxy - miny)) / (X.size() * Y.size());
 
-		int tel = 0;
-		for (auto& i : Z) {
+		for (auto t = 0; auto & i : Z) {
 			i /= dens_xy;
-			Z2[tel] += i; tel++;
+			Z2[t] += i / integ;
+			t++;
 		}
 
 		end = std::chrono::high_resolution_clock::now();
@@ -167,18 +167,16 @@ int main()
 
 	begin = std::chrono::high_resolution_clock::now();
 
-	if (integ > 1) {
-		for (auto& i : Z2)
-			i /= integ;
-	}
-
 	plot.plot_histogram(X, Y, Z2, Sine);
 
 	plot.set_xlabel("X");
 	plot.set_ylabel("Y");
 	plot.set_zlabel("p(X)");
 	plot.grid_on();
-	plot.set_title("Bivariate normal distribution sampling, joined density");
+	if(!Sine)
+		plot.set_title("Bivariate normal distribution, joined density");
+	else 
+		plot.set_title("Bivariate sine distribution, joined density");
 
 	end = std::chrono::high_resolution_clock::now();
 	fp_sec = end - begin;
