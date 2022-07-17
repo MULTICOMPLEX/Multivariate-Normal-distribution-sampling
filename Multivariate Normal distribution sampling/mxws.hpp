@@ -399,22 +399,22 @@ public:
 		return std::make_tuple(rn_range, board_size);
 	}
 
-	double inline Sine()
+	double inline sine()
 	{
 		typedef int I;
 		typedef double T;
 
-		const T sigma = 50;
+		const T board_SIZE = 50;
 
-		const I board_size = I(round(log(sigma * 6) * pow(tan(36 / 5.), 2)));
-		const T rn_range = sigma / sqrt(log2(sigma));
+		const I board_size = I(round(log(board_SIZE * 6) * pow(tan(36 / 5.), 2)));
+		const T rn_range = board_SIZE / sqrt(log2(board_SIZE));
 
 		T random_walk = 0;
 
 		for (auto j = 0; j < board_size; j++)
 			random_walk += (*this)(1.0);
 
-		return fmod(random_walk * rn_range, sigma);
+		return fmod(random_walk * rn_range, board_SIZE);
 	}
 
 	template <typename T, typename L>

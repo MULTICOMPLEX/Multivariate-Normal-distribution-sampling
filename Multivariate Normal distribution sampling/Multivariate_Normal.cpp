@@ -12,11 +12,21 @@ plot_matplotlib plot;
 
 Eigen::MatrixXd covariance_driver();
 
+template <typename T>
+void normalize_vector
+(
+	std::vector<T>& v,
+	const T a,
+	const T b);
+
+template <typename T>
+void null_offset_vector(std::vector<T>& v);
+
 int main()
 {
-	const bool Sine = false;
+	const bool Sine = true;
 	const auto Samples = 100000;
-	const auto integ = 1000;
+	const auto integ = 10000;
 	const auto Histogram_size = 100;
 	const auto Smooth_factor = 1;
 
@@ -26,7 +36,7 @@ int main()
 	mean << 0, 0, 0; // Set the mean
 	//covar << 1, 0.6, 0.6, 2;  
 
-	//covar = covar.Identity();
+	covar = covar.Identity();
 	covar = covariance_driver();
 
 	std::cout << " Number of samples = " << Samples << std::endl << std::endl;
@@ -43,6 +53,8 @@ int main()
 	auto spy = std::span(xy.begin() + Samples, xy.begin() + 2ULL * Samples);
 	auto spz = std::span(xy.begin() + 2ULL * Samples, xy.end());
 
+	auto spxy = { spx, spy, spz };
+
 	Eigen::Map<Eigen::Matrix<double, 3, Samples>,
 		Eigen::Unaligned, Eigen::Stride<1, Samples> > k(xy.data());
 
@@ -56,25 +68,51 @@ int main()
 	std::chrono::time_point<std::chrono::high_resolution_clock> begin, end;
 	std::chrono::duration<double> fp_sec;
 
+	mxws<uint32_t> rng;
+
 	for (auto i = 0; i < integ; i++) {
 
 		begin = std::chrono::high_resolution_clock::now();
 
-		k = normX_cholesk.samples(Samples);
-		
-		minxo = minx, maxxo = maxx, minyo = miny, maxyo = maxy, minzo = minz, maxzo = maxz;
+		if (!Sine) {
 
-		auto mmx = std::ranges::minmax_element(spx);
-		minx = *mmx.min;
-		maxx = *mmx.max;
+			k = normX_cholesk.samples(Samples);
 
-		auto mmy = std::ranges::minmax_element(spy);
-		miny = *mmy.min;
-		maxy = *mmy.max;
+			minxo = minx, maxxo = maxx, minyo = miny, maxyo = maxy, minzo = minz, maxzo = maxz;
 
-		auto mmz = std::ranges::minmax_element(spz);
-		minz = *mmz.min;
-		maxz = *mmz.max;
+			auto mmx = std::ranges::minmax_element(spx);
+			minx = *mmx.min;
+			maxx = *mmx.max;
+
+			auto mmy = std::ranges::minmax_element(spy);
+			miny = *mmy.min;
+			maxy = *mmy.max;
+
+			auto mmz = std::ranges::minmax_element(spz);
+			minz = *mmz.min;
+			maxz = *mmz.max;
+
+			if (minxo < minx)
+				minx = minxo;
+			if (maxxo > maxx)
+				maxx = maxxo;
+			if (minyo < miny)
+				miny = minyo;
+			if (maxyo > maxy)
+				maxy = maxyo;
+			if (minzo < minz)
+				minz = minzo;
+			if (maxzo > maxz)
+				maxz = maxzo;
+		}
+
+		else {
+			for (auto& i : xy)
+				i = rng.sine();
+
+			minx = 0, miny = 0, minz = 0;
+			maxx = 50, maxy = 50, maxz = 50;
+		}
 
 		end = std::chrono::high_resolution_clock::now();
 		fp_sec = end - begin;
@@ -85,48 +123,28 @@ int main()
 
 		begin = std::chrono::high_resolution_clock::now();
 
-		if (minxo < minx)
-			minx = minxo;
-		
-		if(maxxo > maxx)
-			maxx = maxxo;
-
-		if (minyo < miny)
-			miny = minyo;
-
-		if (maxyo > maxy)
-			maxy = maxyo;
-
-		if (minzo < minz)
-			minz = minzo;
-
-		if (maxzo > maxz)
-			maxz = maxzo;
-		
 		auto hxy = boost::histogram::make_histogram(
 			boost::histogram::axis::regular(Histogram_size, minx, maxx),
 			boost::histogram::axis::regular(Histogram_size, miny, maxy),
 			boost::histogram::axis::regular(Histogram_size, minz, maxz));
 
-		auto w = { spx, spy, spz };
+		hxy.fill(spxy);
 
-		hxy.fill(w);
-		
 		auto hr12 = boost::histogram::algorithm::project(hxy, 1_c, 2_c);
 
 		X.clear();
 		Y.clear();
 		Z.clear();
 
-		for (auto && y : hr12.axis(0)) 
-				X.push_back(y);
-		
+		for (auto&& y : hr12.axis(0))
+			X.push_back(y);
+
 		for (auto&& z : hr12.axis(1))
 			Y.push_back(z);
 
 		for (auto&& i : boost::histogram::indexed(hr12))
 			Z.push_back(i);
-		
+
 		auto dens_xy = Samples * abs((maxy - miny) * (maxz - minz)) / (X.size() * Y.size());
 
 		for (auto t = 0; auto & i : Z) {
@@ -188,7 +206,10 @@ int main()
 		}
 	}
 
-	begin = std::chrono::high_resolution_clock::now();
+	if (Sine) {
+		normalize_vector(Z2, -1., 1.);
+		null_offset_vector(Z2);
+	}
 
 	plot.plot_histogram(X, Y, Z2, Sine);
 
@@ -196,10 +217,10 @@ int main()
 	plot.set_ylabel("Y");
 	plot.set_zlabel("p(X)");
 	plot.grid_on();
-	if(!Sine)
+	if (!Sine)
 		plot.set_title("Bivariate normal distribution, joined density");
-	else 
-		plot.set_title("Bivariate sine distribution, joined density");
+	else
+		plot.set_title("Sine distribution, joined density");
 
 	end = std::chrono::high_resolution_clock::now();
 	fp_sec = end - begin;
@@ -226,4 +247,33 @@ Eigen::MatrixXd covariance_driver()
 	Eigen::MatrixXd cov = (centered.adjoint() * centered) / double(mat.rows() - 1);
 
 	return cov;
+}
+
+template <typename T>
+void normalize_vector
+(
+	std::vector<T>& v,
+	const T a,
+	const T b)
+{
+	auto k = std::ranges::minmax_element(v);
+	auto min = *k.min;
+	auto max = *k.max;
+
+	auto normalize = [&](auto& n) {n = a + (n - min) * (b - a) / (max - min); };
+
+	std::ranges::for_each(v, normalize);
+}
+
+template <typename T>
+void null_offset_vector(std::vector<T>& v)
+{
+	T mean = 0;
+	for (auto& d : v)
+		mean += d;
+
+	mean /= v.size();
+
+	for (auto& d : v)
+		d -= mean;
 }

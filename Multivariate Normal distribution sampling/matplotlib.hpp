@@ -515,14 +515,21 @@ void plot_matplotlib::plot_histogram
 	PyRun_StringStd("cp = ax.plot_surface(X, Y, hz, cmap = cm.viridis, antialiased=True)");
 	PyRun_StringStd("maxz = np.max(hz)");
 
+	if (!Sine) {
 		PyRun_StringStd("csetx = plt.contourf(X, Y, hz, 60, zdir = 'x', offset = np.min(hx),\
  cmap = cm.viridis, antialiased=True)");
 		PyRun_StringStd("csety = ax.contourf(X, Y, hz, 60, zdir = 'y', offset = np.max(hy),\
  cmap = cm.viridis, antialiased=True)");
-
-	PyRun_StringStd("cset = ax.contourf\
+		PyRun_StringStd("cset = ax.contourf\
 		(X, Y, hz, 10, zdir = 'z', offset = -maxz/2, cmap = cm.viridis, antialiased=True)");
-	PyRun_StringStd("ax.set_zlim(-maxz/2, maxz)");
+		PyRun_StringStd("ax.set_zlim(-maxz/2, maxz)");
+	}
+
+	else {
+		PyRun_StringStd("cset = ax.contourf\
+		(X, Y, hz, 10, zdir = 'z', offset = -1.5, cmap = cm.viridis, antialiased=True)");
+		PyRun_StringStd("ax.set_zlim(-1.5, 1.0)");
+	}
 
 	PyRun_StringStd("plt.colorbar(cp, shrink = 0.25)");
 	PyRun_StringStd("ax.view_init(27, -21)");
