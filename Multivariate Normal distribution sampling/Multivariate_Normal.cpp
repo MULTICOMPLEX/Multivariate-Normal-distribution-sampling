@@ -30,7 +30,7 @@ int main()
 {
 	const bool Sine = true;
 	const auto Samples = 10000;
-	const auto integ = 100;//1000
+	const auto Integrations = 1000;
 	const auto Histogram_size = 50;
 	const auto Smooth_factor = 1;
 
@@ -57,10 +57,10 @@ int main()
 	auto spy = std::span(xy.begin() + Samples, xy.begin() + 2ULL * Samples);
 	auto spz = std::span(xy.begin() + 2ULL * Samples, xy.end());
 
-	auto spxy = { spx, spy, spz };
+	auto spanxy = { spx, spy, spz };
 
 	Eigen::Map<Eigen::Matrix<double, 3, Samples>,
-		Eigen::Unaligned, Eigen::Stride<1, Samples> > k(xy.data());
+		Eigen::Unaligned, Eigen::Stride<1, Samples> > multivariate_data_buffer(xy.data());
 
 	std::vector<double> Z(Histogram_size * Histogram_size);
 	std::vector<double> X, Y;
@@ -69,21 +69,21 @@ int main()
 		minz = INFINITY, maxz = -INFINITY;
 	double minxo, maxxo, minyo, maxyo, minzo, maxzo;
 
-	std::chrono::time_point<std::chrono::high_resolution_clock> begin1, end1, begin2, end2;
-	std::chrono::duration<double> fp_sec;
+	std::chrono::duration<double> fp1_sec = {}, fp2_sec = {};
 
 	mxws<uint32_t> rng;
 
-	for (auto i = 0; i < integ; i++) {
+	for (auto i = 0; i < Integrations; i++) {
 
 		if (i == 0) {
 			std::cout << std::endl << " busy..." << std::endl << std::endl;
-			begin1 = std::chrono::high_resolution_clock::now();
 		}
+
+		auto begin = std::chrono::high_resolution_clock::now();
 
 		if (!Sine) {
 
-			k = normX_cholesk.samples(Samples);
+			multivariate_data_buffer = normX_cholesk.samples(Samples);
 
 			minxo = minx, maxxo = maxx, minyo = miny, maxyo = maxy, minzo = minz, maxzo = maxz;
 
@@ -107,22 +107,23 @@ int main()
 			maxx = rng.board_SIZE, maxy = rng.board_SIZE, maxz = rng.board_SIZE;
 		}
 
-		if (i == integ - 1) {
-			end1 = std::chrono::high_resolution_clock::now();
-			fp_sec = end1 - begin1;
+		auto end = std::chrono::high_resolution_clock::now();
+
+		fp1_sec += end - begin;
+
+		if (i == Integrations - 1) {
 			std::cout << std::endl << " Duration EigenMultivariateNormal "
-				<< fp_sec.count() << "[s]" << std::endl << std::endl;
+				<< fp1_sec.count() << "[s]" << std::endl << std::endl;
 		}
 
-		if (i == 0)
-			begin2 = std::chrono::high_resolution_clock::now();
+		begin = std::chrono::high_resolution_clock::now();
 
 		auto hxy = boost::histogram::make_histogram(
 			boost::histogram::axis::regular(Histogram_size, minx, maxx),
 			boost::histogram::axis::regular(Histogram_size, miny, maxy),
 			boost::histogram::axis::regular(Histogram_size, minz, maxz));
 
-		hxy.fill(spxy);
+		hxy.fill(spanxy);
 
 		auto hr12 = boost::histogram::algorithm::project(hxy, 1_c, 2_c);
 
@@ -130,18 +131,18 @@ int main()
 			(hr12.axis(0).size() * hr12.axis(1).size());
 
 		for (auto t = 0; auto && i : boost::histogram::indexed(hr12)) {
-			Z[t] += i / integ / dens_xy;
+			Z[t] += i / Integrations / dens_xy;
 			t++;
 		}
 
-		if (i == integ - 1) {
-			end2 = std::chrono::high_resolution_clock::now();
-			fp_sec = end2 - begin2;
-			std::cout << " Duration boost::histogram " << fp_sec.count()
-				<< "[s]" << std::endl << std::endl;
+		end = std::chrono::high_resolution_clock::now();
 
-			X.clear();
-			Y.clear();
+		fp2_sec += end - begin;
+
+		if (i == Integrations - 1) {
+			
+			std::cout << " Duration boost::histogram " << fp2_sec.count()
+				<< "[s]" << std::endl << std::endl;
 
 			for (auto&& y : hr12.axis(0))
 				X.push_back(y);
@@ -159,12 +160,11 @@ int main()
 			X, Y, Z, miny, maxy, minz, maxz);
 
 		auto end = std::chrono::high_resolution_clock::now();
-		fp_sec = end - begin;
+		fp1_sec = end - begin;
 
-		std::cout << std::endl << " Duration BicubicInterpolator " << fp_sec.count()
+		std::cout << std::endl << " Duration BicubicInterpolator " << fp1_sec.count()
 			<< "[s]" << std::endl;
 	}
-
 
 	auto begin = std::chrono::high_resolution_clock::now();
 
@@ -185,8 +185,8 @@ int main()
 		plot.set_title("Sine distribution, joined density");
 
 	auto end = std::chrono::high_resolution_clock::now();
-	fp_sec = end - begin;
-	std::cout << " Duration plot_histogram " << fp_sec.count() << "[s]" << std::endl << std::endl;
+	fp1_sec = end - begin;
+	std::cout << " Duration plot_histogram " << fp1_sec.count() << "[s]" << std::endl << std::endl;
 
 	plot.show();
 }
