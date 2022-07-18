@@ -22,12 +22,16 @@ void normalize_vector
 template <typename T>
 void null_offset_vector(std::vector<T>& v);
 
+void BicubicInterpolator(auto Smooth_factor, auto Histogram_size,
+	auto& X, auto& Y, auto& Z,
+	const double minx, const double maxx, const double miny, const double maxy);
+
 int main()
 {
 	const bool Sine = 1;
 	const auto Samples = 100000;
-	const auto integ = 100;
-	const auto Histogram_size = 100;
+	const auto integ = 1000;
+	const auto Histogram_size = 50;
 	const auto Smooth_factor = 1;
 
 	Eigen::Vector3d mean;
@@ -65,14 +69,17 @@ int main()
 		minz = INFINITY, maxz = -INFINITY;
 	double minxo, maxxo, minyo, maxyo, minzo, maxzo;
 
-	std::chrono::time_point<std::chrono::high_resolution_clock> begin, end;
+	std::chrono::time_point<std::chrono::high_resolution_clock> begin1, end1, begin2, end2;
 	std::chrono::duration<double> fp_sec;
 
 	mxws<uint32_t> rng;
 
 	for (auto i = 0; i < integ; i++) {
 
-		begin = std::chrono::high_resolution_clock::now();
+		if (i == 0) {
+			std::cout << std::endl << " busy..." << std::endl << std::endl;
+			begin1 = std::chrono::high_resolution_clock::now();
+		}
 
 		if (!Sine) {
 
@@ -81,16 +88,13 @@ int main()
 			minxo = minx, maxxo = maxx, minyo = miny, maxyo = maxy, minzo = minz, maxzo = maxz;
 
 			auto mmx = std::ranges::minmax_element(spx);
-			minx = *mmx.min;
-			maxx = *mmx.max;
+			minx = *mmx.min; maxx = *mmx.max;
 
 			auto mmy = std::ranges::minmax_element(spy);
-			miny = *mmy.min;
-			maxy = *mmy.max;
+			miny = *mmy.min; maxy = *mmy.max;
 
 			auto mmz = std::ranges::minmax_element(spz);
-			minz = *mmz.min;
-			maxz = *mmz.max;
+			minz = *mmz.min; maxz = *mmz.max;
 
 			if (minxo < minx) minx = minxo; if (maxxo > maxx) maxx = maxxo;
 			if (minyo < miny) miny = minyo; if (maxyo > maxy) maxy = maxyo;
@@ -99,20 +103,21 @@ int main()
 
 		else {
 
-			std::ranges::for_each(xy, [&](auto& r)  {r = rng.sine<double>(); });
+			std::ranges::for_each(xy, [&](auto& r) {r = rng.sine<double>(); });
 
 			minx = 0, miny = 0, minz = 0;
 			maxx = rng.board_SIZE, maxy = rng.board_SIZE, maxz = rng.board_SIZE;
 		}
 
-		end = std::chrono::high_resolution_clock::now();
-		fp_sec = end - begin;
+		if (i == integ - 1) {
+			end1 = std::chrono::high_resolution_clock::now();
+			fp_sec = end1 - begin1;
+			std::cout << std::endl << " Duration EigenMultivariateNormal "
+				<< fp_sec.count() << "[s]" << std::endl << std::endl;
+		}
 
 		if (i == 0)
-			std::cout << std::endl << " Duration EigenMultivariateNormal "
-			<< fp_sec.count() << "[s]" << std::endl << std::endl;
-
-		begin = std::chrono::high_resolution_clock::now();
+			begin2 = std::chrono::high_resolution_clock::now();
 
 		auto hxy = boost::histogram::make_histogram(
 			boost::histogram::axis::regular(Histogram_size, minx, maxx),
@@ -144,58 +149,30 @@ int main()
 			t++;
 		}
 
-		end = std::chrono::high_resolution_clock::now();
-		fp_sec = end - begin;
-		if (i == 0)
+		if (i == integ - 1) {
+			end2 = std::chrono::high_resolution_clock::now();
+			fp_sec = end2 - begin2;
 			std::cout << " Duration boost::histogram " << fp_sec.count()
-			<< "[s]" << std::endl << std::endl;
-
-		if (Smooth_factor != 1 && i == integ - 1) {
-
-			begin = std::chrono::high_resolution_clock::now();
-
-			_2D::BicubicInterpolator<double> interp2d;
-
-			_2D::DataSet data(X.size() * Smooth_factor, Y.size() * Smooth_factor);
-
-			std::vector<double> Zi(data.x.size());
-
-			auto nx = X.size() * Smooth_factor;
-			auto ny = Y.size() * Smooth_factor;
-
-			for (auto i = 0; i < nx; i++)
-				for (auto j = 0; j < ny; j++)
-					Zi[i * ny + j] = Z2[(j + i * X.size()) % Z2.size()];
-
-			interp2d.setData(data.x, data.y, Zi);
-
-			X.clear();
-			Y.clear();
-
-			auto h = boost::histogram::make_histogram(boost::histogram::axis::regular(
-				Histogram_size * Smooth_factor, miny, maxy),
-				boost::histogram::axis::regular(Histogram_size * Smooth_factor, minz, maxz));
-
-			for (auto&& x : h.axis(0))
-				X.push_back(x);
-
-			for (auto&& y : h.axis(1))
-				Y.push_back(y);
-
-			Z2.clear();
-
-			auto gh = 1. / Smooth_factor;
-			for (auto y = 0; y < Y.size(); y++)
-				for (auto x = 0; x < X.size(); x++)
-					Z2.push_back(interp2d(double(x) * gh, double(y) * gh));
-
-			end = std::chrono::high_resolution_clock::now();
-			fp_sec = end - begin;
-			if (i == 0)
-				std::cout << " Duration BicubicInterpolator " << fp_sec.count()
-				<< "[s]" << std::endl;
+				<< "[s]" << std::endl << std::endl;
 		}
 	}
+
+	if (Smooth_factor != 1) {
+
+		auto begin = std::chrono::high_resolution_clock::now();
+
+		BicubicInterpolator(Smooth_factor, Histogram_size,
+			X, Y, Z2, miny, maxy, minz, maxz);
+
+		auto end = std::chrono::high_resolution_clock::now();
+		fp_sec = end - begin;
+
+		std::cout << std::endl << " Duration BicubicInterpolator " << fp_sec.count()
+			<< "[s]" << std::endl;
+	}
+
+
+	auto begin = std::chrono::high_resolution_clock::now();
 
 	if (Sine) {
 		normalize_vector(Z2, -1., 1.);
@@ -213,14 +190,12 @@ int main()
 	else
 		plot.set_title("Sine distribution, joined density");
 
-	end = std::chrono::high_resolution_clock::now();
+	auto end = std::chrono::high_resolution_clock::now();
 	fp_sec = end - begin;
 	std::cout << " Duration plot_histogram " << fp_sec.count() << "[s]" << std::endl << std::endl;
 
 	plot.show();
-
 }
-
 
 Eigen::MatrixXd covariance_driver()
 {
@@ -267,4 +242,44 @@ void null_offset_vector(std::vector<T>& v)
 
 	for (auto& d : v)
 		d -= mean;
+}
+
+void BicubicInterpolator(auto Smooth_factor, auto Histogram_size,
+	auto& X, auto& Y, auto& Z,
+	const double minx, const double maxx, const double miny, const double maxy)
+{
+	_2D::BicubicInterpolator<double> interp2d;
+
+	_2D::DataSet data(X.size() * Smooth_factor, Y.size() * Smooth_factor);
+
+	std::vector<double> Zi(data.x.size());
+
+	auto nx = X.size() * Smooth_factor;
+	auto ny = Y.size() * Smooth_factor;
+
+	for (auto i = 0; i < nx; i++)
+		for (auto j = 0; j < ny; j++)
+			Zi[i * ny + j] = Z[(j + i * X.size()) % Z.size()];
+
+	interp2d.setData(data.x, data.y, Zi);
+
+	X.clear();
+	Y.clear();
+
+	auto h = boost::histogram::make_histogram(boost::histogram::axis::regular(
+		Histogram_size * Smooth_factor, minx, maxx),
+		boost::histogram::axis::regular(Histogram_size * Smooth_factor, miny, maxy));
+
+	for (auto&& x : h.axis(0))
+		X.push_back(x);
+
+	for (auto&& y : h.axis(1))
+		Y.push_back(y);
+
+	Z.clear();
+
+	auto gh = 1. / Smooth_factor;
+	for (auto y = 0; y < Y.size(); y++)
+		for (auto x = 0; x < X.size(); x++)
+			Z.push_back(interp2d(double(x) * gh, double(y) * gh));
 }
