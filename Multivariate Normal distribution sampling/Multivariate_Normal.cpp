@@ -28,9 +28,9 @@ void BicubicInterpolator(auto Smooth_factor, auto Histogram_size,
 
 int main()
 {
-	const bool Sine = true;
+	const bool Sine = false;
 	const auto Samples = 10000;
-	const auto Integrations = 1000;
+	const auto Integrations = 100;
 	const auto Histogram_size = 50;
 	const auto Smooth_factor = 1;
 
@@ -51,13 +51,12 @@ int main()
 	auto seed = (uint64_t(r()) << 32) | r();
 	Eigen::EigenMultivariateNormal<double> normX_cholesk(mean, covar, false, seed, Sine);
 
-	std::vector<double> xy(3 * Samples);
+	std::vector<double> xy(4 * Samples);
 
 	auto spx = std::span(xy.begin(), Samples);
 	auto spy = std::span(xy.begin() + Samples, xy.begin() + 2ULL * Samples);
-	auto spz = std::span(xy.begin() + 2ULL * Samples, xy.end());
-
-	auto spanxy = { spx, spy, spz };
+	auto spz = std::span(xy.begin() + 2ULL * Samples, xy.begin() + 3ULL * Samples);
+	auto spd = std::span(xy.begin() + 3ULL * Samples, xy.end());
 
 	Eigen::Map<Eigen::Matrix<double, 3, Samples>,
 		Eigen::Unaligned, Eigen::Stride<1, Samples> > multivariate_data_buffer(xy.data());
@@ -66,16 +65,16 @@ int main()
 	std::vector<double> X, Y;
 
 	double minx = INFINITY, maxx = -INFINITY, miny = INFINITY, maxy = -INFINITY,
-		minz = INFINITY, maxz = -INFINITY;
-	double minxo, maxxo, minyo, maxyo, minzo, maxzo;
+		minz = INFINITY, maxz = -INFINITY, mind = INFINITY, maxd = -INFINITY;
+	double minxo, maxxo, minyo, maxyo, minzo, maxzo, mindo, maxdo;
 
 	std::chrono::duration<double> fp1_sec = {}, fp2_sec = {};
 
 	mxws<uint32_t> rng;
 
-	for (auto i = 0; i < Integrations; i++) {
+	for (auto iter = 0; iter < Integrations; iter++) {
 
-		if (i == 0) {
+		if (iter == 0) {
 			std::cout << std::endl << " busy..." << std::endl << std::endl;
 		}
 
@@ -85,7 +84,8 @@ int main()
 
 			multivariate_data_buffer = normX_cholesk.samples(Samples);
 
-			minxo = minx, maxxo = maxx, minyo = miny, maxyo = maxy, minzo = minz, maxzo = maxz;
+			minxo = minx, maxxo = maxx, minyo = miny, maxyo = maxy, 
+				minzo = minz, maxzo = maxz, mindo = mind, maxdo = maxd;
 
 			auto mmx = std::ranges::minmax_element(spx);
 			minx = *mmx.min; maxx = *mmx.max;
@@ -96,22 +96,27 @@ int main()
 			auto mmz = std::ranges::minmax_element(spz);
 			minz = *mmz.min; maxz = *mmz.max;
 
+			auto mmd = std::ranges::minmax_element(spd);
+			mind = *mmd.min; maxd = *mmd.max;
+
 			if (minxo < minx) minx = minxo; if (maxxo > maxx) maxx = maxxo;
 			if (minyo < miny) miny = minyo; if (maxyo > maxy) maxy = maxyo;
 			if (minzo < minz) minz = minzo; if (maxzo > maxz) maxz = maxzo;
+			if (mindo < mind) mind = mindo; if (maxdo > maxd) maxd = maxdo;
 		}
 
 		else {
 			std::ranges::for_each(xy, [&](auto& r) {r = rng.sine<double>(); });
-			minx = 0, miny = 0, minz = 0;
-			maxx = rng.board_SIZE, maxy = rng.board_SIZE, maxz = rng.board_SIZE;
+			minx = 0, miny = 0, minz = 0, mind = 0;
+			maxx = rng.board_SIZE, maxy = rng.board_SIZE, maxz = rng.board_SIZE,
+				maxd = rng.board_SIZE;
 		}
 
 		auto end = std::chrono::high_resolution_clock::now();
 
 		fp1_sec += end - begin;
 
-		if (i == Integrations - 1) {
+		if (iter == Integrations - 1) {
 			std::cout << std::endl << " Duration EigenMultivariateNormal "
 				<< fp1_sec.count() << "[s]" << std::endl << std::endl;
 		}
@@ -123,11 +128,14 @@ int main()
 			boost::histogram::axis::regular(Histogram_size, miny, maxy),
 			boost::histogram::axis::regular(Histogram_size, minz, maxz));
 
-		hxy.fill(spanxy);
+		auto span_xy = { spx, spy, spz };
+		hxy.fill(span_xy);
 
 		auto hr12 = boost::histogram::algorithm::project(hxy, 1_c, 2_c);
 
-		auto dens_xy = Samples * abs((maxy - miny) * (maxz - minz)) /
+		auto dens_xy = Samples * 
+			abs((*hr12.axis(0).begin() - *hr12.axis(0).end()) * 
+				(*hr12.axis(1).begin() - *hr12.axis(1).end())) /
 			(hr12.axis(0).size() * hr12.axis(1).size());
 
 		for (auto t = 0; auto && i : boost::histogram::indexed(hr12)) {
@@ -139,7 +147,7 @@ int main()
 
 		fp2_sec += end - begin;
 
-		if (i == Integrations - 1) {
+		if (iter == Integrations - 1) {
 			
 			std::cout << " Duration boost::histogram " << fp2_sec.count()
 				<< "[s]" << std::endl << std::endl;
@@ -194,6 +202,11 @@ int main()
 Eigen::MatrixXd covariance_driver()
 {
 	Eigen::Matrix3d mat;
+
+	mat << 0.4, 1.16, 0.15, 0.15,
+		0.4, 1.16, 0.15, 0.15,
+		-0.15, 0.45, 1.0225, -0.15,
+		-0.15, 0.45, 1.0225, -0.15;
 
 	mat << 0.4, 1.16, 0.15,
 		0.16, 0.01, 0.45,
