@@ -28,9 +28,9 @@ void BicubicInterpolator(auto Smooth_factor, auto Histogram_size,
 
 int main()
 {
-	const bool Sine = false;
+	const bool Sine = true;
 	const auto Samples = 10000;
-	const auto Integrations = 100;
+	const auto Integrations = 10000;
 	const auto Histogram_size = 50;
 	const auto Smooth_factor = 1;
 
@@ -131,7 +131,7 @@ int main()
 		auto span_xy = { spx, spy, spz };
 		hxy.fill(span_xy);
 
-		auto hr12 = boost::histogram::algorithm::project(hxy, 0_c, 1_c);
+		auto hr12 = boost::histogram::algorithm::project(hxy, 0_c, 2_c);
 
 		auto dens_xy = Samples * 
 			abs((*hr12.axis(0).begin() - *hr12.axis(0).end()) * 
@@ -203,14 +203,9 @@ Eigen::MatrixXd covariance_driver()
 {
 	Eigen::Matrix3d mat;
 
-	mat << 0.4, 1.16, 0.15, 0.15,
-		0.4, 1.16, 0.15, 0.15,
-		-0.15, 0.45, 1.0225, -0.15,
-		-0.15, 0.45, 1.0225, -0.15;
-
-	//mat << 0.4, 1.16, 0.15,
-	//	0.16, 0.01, 0.45,
-	//	-0.15, 0.45, 1.0225;
+	mat <<   1, 0.5, 0.5,
+		     0.5,   1, 0.5,
+		     0.5, 0.5,   1;
 
 	//auto x_mean = mat.colwise().mean();
 	//Eigen::Matrix3d cov = ((mat.rowwise() - x_mean).matrix().transpose()
