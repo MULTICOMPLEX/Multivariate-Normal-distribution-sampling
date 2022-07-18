@@ -131,7 +131,7 @@ int main()
 		auto span_xy = { spx, spy, spz };
 		hxy.fill(span_xy);
 
-		auto hr12 = boost::histogram::algorithm::project(hxy, 1_c, 2_c);
+		auto hr12 = boost::histogram::algorithm::project(hxy, 0_c, 1_c);
 
 		auto dens_xy = Samples * 
 			abs((*hr12.axis(0).begin() - *hr12.axis(0).end()) * 
@@ -208,9 +208,9 @@ Eigen::MatrixXd covariance_driver()
 		-0.15, 0.45, 1.0225, -0.15,
 		-0.15, 0.45, 1.0225, -0.15;
 
-	mat << 0.4, 1.16, 0.15,
-		0.16, 0.01, 0.45,
-		-0.15, 0.45, 1.0225;
+	//mat << 0.4, 1.16, 0.15,
+	//	0.16, 0.01, 0.45,
+	//	-0.15, 0.45, 1.0225;
 
 	//auto x_mean = mat.colwise().mean();
 	//Eigen::Matrix3d cov = ((mat.rowwise() - x_mean).matrix().transpose()
