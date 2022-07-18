@@ -65,7 +65,7 @@ namespace Eigen {
 				if(!Sine)
 					return std_norm(rng);
 				else
-					return rng.sine();
+					return rng.sine<double>();
 			}
 
 			void seed(const uint64_t& s) { rng.seed(s); }

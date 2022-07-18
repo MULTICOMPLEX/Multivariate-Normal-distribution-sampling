@@ -399,16 +399,14 @@ public:
 		return std::make_tuple(rn_range, board_size);
 	}
 
-	double inline sine()
+	const int board_SIZE = 50;
+	const int board_size = int(round(log(board_SIZE * 6) * pow(tan(36 / 5.), 2))); 
+	const double rn_range = board_SIZE / sqrt(log2(board_SIZE));
+
+	template <typename T>
+		requires std::floating_point<T>
+	T inline sine()
 	{
-		typedef int I;
-		typedef double T;
-
-		const T board_SIZE = 50;
-
-		const I board_size = I(round(log(board_SIZE * 6) * pow(tan(36 / 5.), 2)));
-		const T rn_range = board_SIZE / sqrt(log2(board_SIZE));
-
 		T random_walk = 0;
 
 		for (auto j = 0; j < board_size; j++)

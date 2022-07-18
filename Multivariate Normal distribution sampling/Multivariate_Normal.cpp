@@ -24,7 +24,7 @@ void null_offset_vector(std::vector<T>& v);
 
 int main()
 {
-	const bool Sine = true;
+	const bool Sine = 1;
 	const auto Samples = 100000;
 	const auto integ = 100;
 	const auto Histogram_size = 100;
@@ -99,11 +99,10 @@ int main()
 
 		else {
 
-			for (auto& i : xy)
-				i = rng.sine();
+			std::ranges::for_each(xy, [&](auto& r)  {r = rng.sine<double>(); });
 
-			minx = 0., miny = 0., minz = 0.;
-			maxx = 50, maxy = 50, maxz = 50;
+			minx = 0, miny = 0, minz = 0;
+			maxx = rng.board_SIZE, maxy = rng.board_SIZE, maxz = rng.board_SIZE;
 		}
 
 		end = std::chrono::high_resolution_clock::now();
