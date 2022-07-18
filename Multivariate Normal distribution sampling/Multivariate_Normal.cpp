@@ -28,9 +28,9 @@ void BicubicInterpolator(auto Smooth_factor, auto Histogram_size,
 
 int main()
 {
-	const bool Sine = 1;
-	const auto Samples = 100000;
-	const auto integ = 1000;
+	const bool Sine = true;
+	const auto Samples = 10000;
+	const auto integ = 100;//1000
 	const auto Histogram_size = 50;
 	const auto Smooth_factor = 1;
 
@@ -62,8 +62,8 @@ int main()
 	Eigen::Map<Eigen::Matrix<double, 3, Samples>,
 		Eigen::Unaligned, Eigen::Stride<1, Samples> > k(xy.data());
 
-	std::vector<double> Z2(Histogram_size * Histogram_size);
-	std::vector<double> X, Y, Z;
+	std::vector<double> Z(Histogram_size * Histogram_size);
+	std::vector<double> X, Y;
 
 	double minx = INFINITY, maxx = -INFINITY, miny = INFINITY, maxy = -INFINITY,
 		minz = INFINITY, maxz = -INFINITY;
@@ -102,9 +102,7 @@ int main()
 		}
 
 		else {
-
 			std::ranges::for_each(xy, [&](auto& r) {r = rng.sine<double>(); });
-
 			minx = 0, miny = 0, minz = 0;
 			maxx = rng.board_SIZE, maxy = rng.board_SIZE, maxz = rng.board_SIZE;
 		}
@@ -128,24 +126,11 @@ int main()
 
 		auto hr12 = boost::histogram::algorithm::project(hxy, 1_c, 2_c);
 
-		X.clear();
-		Y.clear();
-		Z.clear();
+		auto dens_xy = Samples * abs((maxy - miny) * (maxz - minz)) /
+			(hr12.axis(0).size() * hr12.axis(1).size());
 
-		for (auto&& y : hr12.axis(0))
-			X.push_back(y);
-
-		for (auto&& z : hr12.axis(1))
-			Y.push_back(z);
-
-		for (auto&& i : boost::histogram::indexed(hr12))
-			Z.push_back(i);
-
-		auto dens_xy = Samples * abs((maxy - miny) * (maxz - minz)) / (X.size() * Y.size());
-
-		for (auto t = 0; auto & i : Z) {
-			i /= dens_xy;
-			Z2[t] += i / integ;
+		for (auto t = 0; auto && i : boost::histogram::indexed(hr12)) {
+			Z[t] += i / integ / dens_xy;
 			t++;
 		}
 
@@ -154,6 +139,15 @@ int main()
 			fp_sec = end2 - begin2;
 			std::cout << " Duration boost::histogram " << fp_sec.count()
 				<< "[s]" << std::endl << std::endl;
+
+			X.clear();
+			Y.clear();
+
+			for (auto&& y : hr12.axis(0))
+				X.push_back(y);
+
+			for (auto&& z : hr12.axis(1))
+				Y.push_back(z);
 		}
 	}
 
@@ -162,7 +156,7 @@ int main()
 		auto begin = std::chrono::high_resolution_clock::now();
 
 		BicubicInterpolator(Smooth_factor, Histogram_size,
-			X, Y, Z2, miny, maxy, minz, maxz);
+			X, Y, Z, miny, maxy, minz, maxz);
 
 		auto end = std::chrono::high_resolution_clock::now();
 		fp_sec = end - begin;
@@ -175,11 +169,11 @@ int main()
 	auto begin = std::chrono::high_resolution_clock::now();
 
 	if (Sine) {
-		normalize_vector(Z2, -1., 1.);
-		null_offset_vector(Z2);
+		normalize_vector(Z, -1., 1.);
+		null_offset_vector(Z);
 	}
 
-	plot.plot_histogram(X, Y, Z2, Sine);
+	plot.plot_histogram(X, Y, Z, Sine);
 
 	plot.set_xlabel("X");
 	plot.set_ylabel("Y");
