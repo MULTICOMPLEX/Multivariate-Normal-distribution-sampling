@@ -28,9 +28,9 @@ void BicubicInterpolator(auto Smooth_factor, auto Histogram_size,
 
 int main()
 {
-	const bool Sine = 0;
+	const bool Sine = true;
 	const auto Samples = 10000;
-	const auto Integrations = 100;
+	const auto Integrations = 1000000;
 	const auto Histogram_size = 50;
 	const auto Smooth_factor = 1;
 

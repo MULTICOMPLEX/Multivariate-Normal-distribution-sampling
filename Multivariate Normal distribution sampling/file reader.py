@@ -4,6 +4,8 @@ from matplotlib import cm
 from timeit import default_timer as timer
 
 
+start = timer()
+
 filename = './data/Distribution'
 #np.savez_compressed(filename, a=x2, b=y2, c=density)
 loaded = np.load(filename +'.npz')
@@ -18,8 +20,6 @@ X, Y = np.meshgrid(X, Y)
 fig = plt.figure()
 
 ax = fig.add_subplot(projection='3d')
-
-start = timer()
 
 cp = ax.plot_surface(X, Y, density, cmap=cm.viridis)
 
@@ -46,7 +46,7 @@ ax.set_zlabel("p(X)")
 ax.text2D(0.03, 0.5, "p(Y)", transform=ax.transAxes)
 
 end = timer()
-print(" Duration Plot ", end - start)
+print(" Duration ", end - start)
 
 plt.show()
 
