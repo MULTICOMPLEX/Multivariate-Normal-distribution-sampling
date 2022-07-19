@@ -516,7 +516,7 @@ void plot_matplotlib::plot_histogram
 	PyRun_StringStd("maxz = np.max(hz)");
 
 	if (!Sine) {
-		PyRun_StringStd("csetx = plt.contourf(X, Y, hz, 60, zdir = 'x', offset = np.min(hx),\
+		PyRun_StringStd("csetx = ax.contourf(X, Y, hz, 60, zdir = 'x', offset = np.min(hx),\
  cmap = cm.viridis, antialiased=True)");
 		PyRun_StringStd("csety = ax.contourf(X, Y, hz, 60, zdir = 'y', offset = np.max(hy),\
  cmap = cm.viridis, antialiased=True)");
@@ -535,6 +535,10 @@ void plot_matplotlib::plot_histogram
 	PyRun_StringStd("ax.view_init(27, -21)");
 
 	PyRun_StringStd("ax.text2D(0.03, 0.5, 'p(Y)', transform = ax.transAxes)");
+	
+	PyRun_StringStd("filename = './data/Distribution'");
+	PyRun_StringStd("np.savez_compressed(filename, a = hx, b = hy, c = hz, d = " + std::to_string(Sine) + ")");
+	
 }
 
 void plot_matplotlib::line(const double x1, const double x2, const double y1, const double y2,
