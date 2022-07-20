@@ -51,6 +51,8 @@ print(" Duration ", end - start)
 
 plt.show()
 
+start = timer()
+
 #######################################
 
 class NumpyArrayEncoder(JSONEncoder):
