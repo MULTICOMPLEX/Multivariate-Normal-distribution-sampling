@@ -8,7 +8,7 @@ from timeit import default_timer as timer
 from numpy.random import Generator, PCG64DXSM, SFC64, SeedSequence
 
 Samples = 10000000
-Histogram_size = 100
+Histogram_size = 50
 Smooth_factor = 1
 
 mean = [0, 0, 0]
@@ -16,12 +16,13 @@ mean = [0, 0, 0]
 
 #cov = [[1, 0.6], [0.6, 2]] 
 
-mat = [[0.4,  1.16,  0.15],
-      [0.16,   0.01, 0.45],
-      [-0.15, 0.45, 1.0225]]
+mat = [[0, 1, 1],
+      [ 1, 0, 1],
+      [ 1, 1, 0]]
+
 
 cov = np.cov(mat, rowvar=False)
-#print(cov)
+print(cov)
 
 rng = Generator(PCG64DXSM())
 #print(rng.random())
@@ -50,7 +51,7 @@ hist = bh.Histogram(bh.axis.Regular(Histogram_size, mina, maxa),
 
 hist = hist.fill(a, b, c)
 
-hist = hist.project(1, 2) 
+hist = hist.project(0, 1) 
 
 # Compute the areas of each bin
 areas = functools.reduce(operator.mul, hist.axes.widths)

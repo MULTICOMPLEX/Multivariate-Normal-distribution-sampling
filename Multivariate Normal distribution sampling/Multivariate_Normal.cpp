@@ -28,9 +28,9 @@ void BicubicInterpolator(auto Smooth_factor, auto Histogram_size,
 
 int main()
 {
-	const bool Sine = true;
-	const auto Samples = 10000;
-	const auto Integrations = 1000000;
+	const bool Sine = 0;
+	const auto Samples = 100000;
+	const auto Integrations = 1000;
 	const auto Histogram_size = 50;
 	const auto Smooth_factor = 1;
 
@@ -99,10 +99,10 @@ int main()
 			auto mmd = std::ranges::minmax_element(spd);
 			mind = *mmd.min; maxd = *mmd.max;
 
-			if (minxo < minx) minx = minxo; if (maxxo > maxx) maxx = maxxo;
-			if (minyo < miny) miny = minyo; if (maxyo > maxy) maxy = maxyo;
-			if (minzo < minz) minz = minzo; if (maxzo > maxz) maxz = maxzo;
-			if (mindo < mind) mind = mindo; if (maxdo > maxd) maxd = maxdo;
+			if (minx > minxo) minx = minxo; if (maxx < maxxo) maxx = maxxo;
+			if (miny > minyo) miny = minyo; if (maxy < maxyo) maxy = maxyo;
+			if (minz > minzo) minz = minzo; if (maxz < maxzo) maxz = maxzo;
+			if (mind > mindo) mind = mindo; if (maxd < maxdo) maxd = maxdo;
 		}
 
 		else {
@@ -131,15 +131,14 @@ int main()
 		auto span_xy = { spx, spy, spz };
 		hxy.fill(span_xy);
 
-		auto hr12 = boost::histogram::algorithm::project(hxy, 0_c, 2_c);
+		auto hr12 = boost::histogram::algorithm::project(hxy, 0_c, 1_c);
 
-		auto dens_xy = Samples * 
-			abs((*hr12.axis(0).begin() - *hr12.axis(0).end()) * 
+		auto dens_xy = 1. / (abs((*hr12.axis(0).begin() - *hr12.axis(0).end()) * 
 				(*hr12.axis(1).begin() - *hr12.axis(1).end())) /
-			(hr12.axis(0).size() * hr12.axis(1).size());
+			(hr12.axis(0).size() * hr12.axis(1).size()));
 
 		for (auto t = 0; auto && i : boost::histogram::indexed(hr12)) {
-			Z[t] += i / Integrations / dens_xy;
+			Z[t] += i * dens_xy;
 			t++;
 		}
 
@@ -176,6 +175,9 @@ int main()
 
 	auto begin = std::chrono::high_resolution_clock::now();
 
+	for (auto & i : Z) 
+		i *= 1. / (Samples * Integrations);
+
 	if (Sine) {
 		normalize_vector(Z, -1., 1.);
 		null_offset_vector(Z);
@@ -201,12 +203,16 @@ int main()
 
 Eigen::MatrixXd covariance_driver()
 {
-	Eigen::Matrix3d mat;
+	Eigen::Matrix3d mat, mat2;
 
 	mat <<   1, 0.5, 0.5,
 		     0.5,   1, 0.5,
 		     0.5, 0.5,   1;
-
+	
+	mat << 1, 0, 0,
+	       0, 1, 0,
+		     0, 0, 1;
+	
 	//auto x_mean = mat.colwise().mean();
 	//Eigen::Matrix3d cov = ((mat.rowwise() - x_mean).matrix().transpose()
 		//* (mat.rowwise() - x_mean).matrix()) / (mat.rows() - 1);
