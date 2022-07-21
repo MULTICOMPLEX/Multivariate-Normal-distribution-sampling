@@ -26,6 +26,11 @@ void BicubicInterpolator(auto Smooth_factor, auto Histogram_size,
 	auto& X, auto& Y, auto& Z,
 	const double minx, const double maxx, const double miny, const double maxy);
 
+template <typename T>
+T variance(std::vector<T>& a);
+template <typename T>
+T meanv(std::vector<T>& a);
+
 int main()
 {
 	const bool Sine = 0;
@@ -84,7 +89,7 @@ int main()
 
 			multivariate_data_buffer = normX_cholesk.samples(Samples);
 
-			minxo = minx, maxxo = maxx, minyo = miny, maxyo = maxy, 
+			minxo = minx, maxxo = maxx, minyo = miny, maxyo = maxy,
 				minzo = minz, maxzo = maxz, mindo = mind, maxdo = maxd;
 
 			auto mmx = std::ranges::minmax_element(spx);
@@ -96,13 +101,13 @@ int main()
 			auto mmz = std::ranges::minmax_element(spz);
 			minz = *mmz.min; maxz = *mmz.max;
 
-			auto mmd = std::ranges::minmax_element(spd);
-			mind = *mmd.min; maxd = *mmd.max;
+			//auto mmd = std::ranges::minmax_element(spd);
+			//mind = *mmd.min; maxd = *mmd.max;
 
 			if (minx > minxo) minx = minxo; if (maxx < maxxo) maxx = maxxo;
 			if (miny > minyo) miny = minyo; if (maxy < maxyo) maxy = maxyo;
 			if (minz > minzo) minz = minzo; if (maxz < maxzo) maxz = maxzo;
-			if (mind > mindo) mind = mindo; if (maxd < maxdo) maxd = maxdo;
+			//if (mind > mindo) mind = mindo; if (maxd < maxdo) maxd = maxdo;
 		}
 
 		else {
@@ -126,15 +131,16 @@ int main()
 		auto hxy = boost::histogram::make_histogram(
 			boost::histogram::axis::regular(Histogram_size, minx, maxx),
 			boost::histogram::axis::regular(Histogram_size, miny, maxy),
-			boost::histogram::axis::regular(Histogram_size, minz, maxz));
+			boost::histogram::axis::regular(Histogram_size, minz, maxz)
+		);
 
 		auto span_xy = { spx, spy, spz };
 		hxy.fill(span_xy);
 
 		auto hr12 = boost::histogram::algorithm::project(hxy, 0_c, 1_c);
 
-		auto dens_xy = 1. / (abs((*hr12.axis(0).begin() - *hr12.axis(0).end()) * 
-				(*hr12.axis(1).begin() - *hr12.axis(1).end())) /
+		auto dens_xy = 1. / (abs((*hr12.axis(0).begin() - *hr12.axis(0).end()) *
+			(*hr12.axis(1).begin() - *hr12.axis(1).end())) /
 			(hr12.axis(0).size() * hr12.axis(1).size()));
 
 		for (auto t = 0; auto && i : boost::histogram::indexed(hr12)) {
@@ -147,7 +153,7 @@ int main()
 		fp2_sec += end - begin;
 
 		if (iter == Integrations - 1) {
-			
+
 			std::cout << " Duration boost::histogram " << fp2_sec.count()
 				<< "[s]" << std::endl << std::endl;
 
@@ -175,7 +181,7 @@ int main()
 
 	auto begin = std::chrono::high_resolution_clock::now();
 
-	for (auto & i : Z) 
+	for (auto& i : Z)
 		i *= 1. / (Samples * Integrations);
 
 	if (Sine) {
@@ -205,14 +211,14 @@ Eigen::MatrixXd covariance_driver()
 {
 	Eigen::Matrix3d mat, mat2;
 
-	mat <<   1, 0.5, 0.5,
-		     0.5,   1, 0.5,
-		     0.5, 0.5,   1;
-	
+	mat << 1, 0.5, 0.5,
+		0.5, 1, 0.5,
+		0.5, 0.5, 1;
+
 	mat << 1, 0, 0,
-	       0, 1, 0,
-		     0, 0, 1;
-	
+		0, 1, 0,
+		0, 0, 1;
+
 	//auto x_mean = mat.colwise().mean();
 	//Eigen::Matrix3d cov = ((mat.rowwise() - x_mean).matrix().transpose()
 		//* (mat.rowwise() - x_mean).matrix()) / (mat.rows() - 1);
@@ -290,4 +296,39 @@ void BicubicInterpolator(auto Smooth_factor, auto Histogram_size,
 	for (auto y = 0; y < Y.size(); y++)
 		for (auto x = 0; x < X.size(); x++)
 			Z.push_back(interp2d(double(x) * gh, double(y) * gh));
+}
+
+template <typename T>
+T variance(std::vector<T>& a)
+{
+	// Compute mean (average of elements)
+	T sum = 0;
+	for (auto i = 0; i < a.size(); i++)
+		sum += a[i];
+
+	double mean = (double)sum / (double)a.size();
+
+	// Compute sum squared
+	// differences with mean.
+	double sqDiff = 0;
+	for (auto i = 0; i < a.size(); i++)
+		sqDiff += pow(a[i] - mean, 2);
+	return sqDiff / a.size();
+}
+
+template <typename T>
+T meanv(std::vector<T>& a)
+{
+	// Compute mean (average of elements)
+	T sum = 0;
+	for (auto i = 0; i < a.size(); i++)
+		sum += a[i];
+
+	return (double)sum / (double)a.size();
+}
+
+template <typename T>
+double standardDeviation(std::vector<T>& arr)
+{
+	return sqrt(variance(arr));
 }

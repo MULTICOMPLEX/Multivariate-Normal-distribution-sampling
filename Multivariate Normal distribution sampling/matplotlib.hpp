@@ -143,6 +143,7 @@ plot_matplotlib::plot_matplotlib() // Constructor
 	PyRun_StringStd("import numpy as np");
 	PyRun_StringStd("from mpl_toolkits.mplot3d import Axes3D");
 	PyRun_StringStd("from matplotlib import cm");
+	PyRun_StringStd("import math");
 }
 
 plot_matplotlib::~plot_matplotlib() // Destructor
@@ -539,6 +540,14 @@ void plot_matplotlib::plot_histogram
 	PyRun_StringStd("filename = './data/Distribution'");
 	PyRun_StringStd("np.savez_compressed(filename, a = hx, b = hy, c = hz, d = " + std::to_string(Sine) + ")");
 	
+	//PyRun_StringStd("mxx = np.mean(csetx.allsegs[30][0][:, 1])");
+	//PyRun_StringStd("mxy = np.mean(csety.allsegs[30][0][:, 1])");
+
+	//PyRun_StringStd("print(mxx)");
+	//std::cout << std::endl;
+	//PyRun_StringStd("print(mxy)");
+	//std::cout << std::endl;
+
 }
 
 void plot_matplotlib::line(const double x1, const double x2, const double y1, const double y2,
