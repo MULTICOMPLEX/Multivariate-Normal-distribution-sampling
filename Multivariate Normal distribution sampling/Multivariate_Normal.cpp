@@ -30,7 +30,7 @@ int main()
 {
 	const bool Sine = 0;
 	const auto Samples = 100000;
-	const auto Integrations = 1000;
+	const auto Integrations = 10000;
 	const auto Histogram_size = 50;
 	const auto Smooth_factor = 1;
 
