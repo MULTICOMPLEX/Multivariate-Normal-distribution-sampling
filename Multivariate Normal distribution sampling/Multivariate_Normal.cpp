@@ -55,7 +55,7 @@ int main()
 	std::random_device r;
 	auto seed = (uint64_t(r()) << 32) | r();
 	Eigen::EigenMultivariateNormal<double> normX_cholesk(mean, covar, false, seed, Sine);
-
+	 
 	std::vector<double> xy(4 * Samples);
 
 	auto spx = std::span(xy.begin(), Samples);
