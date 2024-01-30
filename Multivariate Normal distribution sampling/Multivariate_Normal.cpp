@@ -1,12 +1,23 @@
+#if defined(_MSC_VER)
+# pragma warning(push)
+#endif
+#define _SILENCE_CXX23_DENORM_DEPRECATION_WARNING
 #include "libInterpolate/Interpolate.hpp"
 #include "libInterpolate/DataSet.hpp"
-#include "eigenmvn.h"
+#if defined(_MSC_VER)
+# pragma warning(push)
+#endif
+#include "eigenmvn.h" // Fixed missing quotation mark here
+#if defined(_MSC_VER)
+# pragma warning(pop)
+#endif
 #include <numbers>
 #include <chrono>
 #include <ranges>
 #include "matplotlib.hpp"
 #include <boost/histogram.hpp>
 using namespace boost::histogram::literals; // enables _c suffix
+
 
 plot_matplotlib plot;
 
