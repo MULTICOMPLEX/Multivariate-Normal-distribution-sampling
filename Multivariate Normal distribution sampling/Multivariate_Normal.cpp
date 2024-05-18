@@ -44,7 +44,7 @@ T meanv(std::vector<T>& a);
 
 int main()
 {
-	const bool Sine = 0;
+	const bool Sine = false;
 	const auto Samples = 100000;
 	const auto Integrations = 10000;
 	const auto Histogram_size = 50;
